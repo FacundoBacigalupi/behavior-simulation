@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbf2d18ec98dff84fbf6ef665fc8b672, type: 3}
+  m_Name: PredatorPreySettings
+  m_EditorClassIdentifier: 
+  boundsHalfW: 19
+  boundsHalfH: 11
+  preyStart: 50
+  preyMax: 200
+  preySpeed: 4
+  preyMaxForce: 10
+  preyFleeSpeedMult: 1.6
+  preyEnergyStart: 12
+  preyEnergyDecay: 0.3
+  preyFleeRadius: 5
+  preyEatRadius: 0.7
+  preyReproduceE: 12
+  preyReproduceCool: 4
+  predStart: 8
+  predMax: 60
+  predSpeed: 5
+  predMaxForce: 12
+  predHuntRadius: 12
+  predEnergyStart: 15
+  predEnergyDecay: 0.6
+  predEatRadius: 1
+  predEatGain: 8
+  predReproduceE: 26
+  predReproduceCool: 12
+  foodCount: 80
+  foodRegrowTime: 5
+  foodEatGain: 6
+  foodEatRadius: 0.7

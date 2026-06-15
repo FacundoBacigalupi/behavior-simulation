@@ -1,0 +1,101 @@
+#pragma kernel CSBoids
+
+struct BoidData
+{
+    float2 pos;
+    float2 vel;
+};
+
+StructuredBuffer<BoidData>   _BoidsIn;
+RWStructuredBuffer<BoidData> _BoidsOut;
+
+int   _Count;
+float _DeltaTime;
+float _MaxSpeed;
+float _MaxForce;
+float _PerceptionRadius;
+float _SeparationRadius;
+float _SeparationWeight;
+float _AlignmentWeight;
+float _CohesionWeight;
+float _BoundsHalfW;
+float _BoundsHalfH;
+
+// Clamp vector magnitude without a sqrt when under limit
+float2 ClampMag(float2 v, float maxMag)
+{
+    float len2 = dot(v, v);
+    if (len2 > maxMag * maxMag && len2 > 0.00001)
+        return v * (maxMag * rsqrt(len2));
+    return v;
+}
+
+float2 Steer(float2 vel, float2 desired, float maxSpd, float maxF)
+{
+    float dlen2 = dot(desired, desired);
+    if (dlen2 < 0.00001) return 0;
+    float2 d = desired * (maxSpd * rsqrt(dlen2));  // desired.normalised * maxSpeed
+    return ClampMag(d - vel, maxF);
+}
+
+// Positive-always fmod for wrapping negative coordinates
+float Wrap(float x, float halfRange)
+{
+    float r = halfRange * 2.0;
+    return fmod(fmod(x + halfRange, r) + r, r) - halfRange;
+}
+
+[numthreads(64, 1, 1)]
+void CSBoids(uint3 id : SV_DispatchThreadID)
+{
+    uint i = id.x;
+    if ((int)i >= _Count) return;
+
+    float2 pos = _BoidsIn[i].pos;
+    float2 vel = _BoidsIn[i].vel;
+
+    float2 sep    = 0;
+    float2 aliSum = 0;
+    float2 cohSum = 0;
+    int    seen   = 0;
+    int    sepCnt = 0;
+
+    float pR2 = _PerceptionRadius * _PerceptionRadius;
+    float sR2 = _SeparationRadius * _SeparationRadius;
+
+    for (int j = 0; j < _Count; j++)
+    {
+        if (j == (int)i) continue;
+        float2 diff  = pos - _BoidsIn[j].pos;
+        float  dist2 = dot(diff, diff);
+        if (dist2 >= pR2 || dist2 < 0.00001) continue;
+
+        aliSum += _BoidsIn[j].vel;
+        cohSum += _BoidsIn[j].pos;
+        seen++;
+
+        if (dist2 < sR2)
+        {
+            sep += diff * rsqrt(dist2);   // diff / length(diff)
+            sepCnt++;
+        }
+    }
+
+    float2 steer = 0;
+    if (seen > 0)
+    {
+        steer += Steer(vel, aliSum / seen,       _MaxSpeed, _MaxForce) * _AlignmentWeight;
+        steer += Steer(vel, cohSum / seen - pos, _MaxSpeed, _MaxForce) * _CohesionWeight;
+    }
+    if (sepCnt > 0)
+        steer += Steer(vel, sep, _MaxSpeed, _MaxForce) * _SeparationWeight;
+
+    vel = ClampMag(vel + steer * _DeltaTime, _MaxSpeed);
+
+    float2 newPos;
+    newPos.x = Wrap(pos.x + vel.x * _DeltaTime, _BoundsHalfW);
+    newPos.y = Wrap(pos.y + vel.y * _DeltaTime, _BoundsHalfH);
+
+    _BoidsOut[i].pos = newPos;
+    _BoidsOut[i].vel = vel;
+}
